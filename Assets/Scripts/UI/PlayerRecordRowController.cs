@@ -31,7 +31,7 @@ public class PlayerRecordRowController : MonoBehaviour
             nameText.text = name;
         }
         if(scoreText != null) {
-            scoreText.text = "+" + score.ToString();
+            scoreText.text = score.ToString();
         }
         if(coverObject != null) {
             coverObject.SetActive(!isComplete);

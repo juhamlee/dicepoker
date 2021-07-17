@@ -52,14 +52,15 @@ public class GameController : MonoBehaviour
         popupManager = PopupManager.getInstance();
         tableManager = TableManager.getInstance();
         playerManager = PlayerManager.getInstance();
+
+        SetupGame();
     }
 
     private void Start() {
-        SetupGame(PlayerName);
     }
 
-    public void SetupGame(string name) {
-        playerManager.SetupPlayer(0, name);
+    public void SetupGame() {
+        playerManager.SetupPlayer(0, PlayerName);
         playerManager.SetupPlayer(1, "COM", true);
 
         isAutoPlay = playerManager.GetCurrentPlayerAuto();

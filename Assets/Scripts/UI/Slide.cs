@@ -5,7 +5,7 @@ using UnityEngine;
 public class SlideObject : PopupObject
 {
     public float slideDelay { get; protected set; } = 0.5f;
-    public float slideMinX { get; protected set; } = -950f;
+    public float slideMinX { get; protected set; } = -910f;
     public float slideMaxX { get; protected set; } = 0f;
     public bool isOpen { get; protected set; } = false;
     private Coroutine recentSlideCoroutine = null;

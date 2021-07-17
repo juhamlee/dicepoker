@@ -26,10 +26,6 @@ public class DiceIconController : MonoBehaviour
         }
     }
 
-    public void SetOpacity(float opacity) {
-        faceImage.color = new Color(1, 1, 1, opacity);
-    }
-
     public void SetSize(float width, float height) {
         if(TryGetComponent<RectTransform>(out RectTransform rect)) {
             rect.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, width);

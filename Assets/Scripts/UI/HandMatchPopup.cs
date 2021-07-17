@@ -13,22 +13,20 @@ public class HandMatchPopup : PopupObject
 
     public Text progressText = null;
     public Text scoreText = null;
-    public Text scoreSelectedText = null;
     public VerticalLayoutGroup rowContainer = null;
     public HorizontalLayoutGroup handContainer = null;
     public DiceIconController prefabDiceIcon = null;
     public HandMatchRowController prefabRow = null;
+    public GameObject prefabSeperator = null;
+    public GameObject[] arrVerticalSeperator = null;
 
     private DiceIconController[] arrHandDiceIcon = null;
     private HandMatchRowController[] arrRow = null;
-    private RectTransform rowContainerRect = null;
     private int currentScore = 0;
     private int selectedScore = 0;
     private int currentProgress = 0;
     private int maxProgress = 0;
     private int selectedIndex = -1;
-    private float selectedScale = 1f;
-    private float unselectedScale = 1f;
     private Data[] arrData = null;
 
     private GameController gameController = null;
@@ -44,12 +42,14 @@ public class HandMatchPopup : PopupObject
         for(int i = 0; i < DEFS.DICE_MAX; i++) {
             arrHandDiceIcon[i] = Instantiate<DiceIconController>(prefabDiceIcon, handContainer.transform);
             arrHandDiceIcon[i].name = "Hand Dice Icon" + (i + 1).ToString();
-            arrHandDiceIcon[i].SetSize(150f, 150f);
+            arrHandDiceIcon[i].SetSize(130f, 130f);
         }
 
         int ruleSize = RuleBook.getInstance.GetRuleSize();
+
         arrRow = new HandMatchRowController[ruleSize];
         for(int i = 0; i < ruleSize; i++) {
+            Instantiate<GameObject>(prefabSeperator, rowContainer.transform);
             arrRow[i] = Instantiate<HandMatchRowController>(prefabRow, rowContainer.transform);
             arrRow[i].name = "Match Row" + (i + 1).ToString();
             if(arrRow[i].button != null) {
@@ -57,19 +57,24 @@ public class HandMatchPopup : PopupObject
                 arrRow[i].button.onClick.AddListener(delegate { ClickSelect(param); });
             }
         }
+        Instantiate<GameObject>(prefabSeperator, rowContainer.transform);
+        
         arrData = new Data[ruleSize];
 
-        rowContainer.TryGetComponent<RectTransform>(out rowContainerRect);
-        prefabRow.TryGetComponent<RectTransform>(out RectTransform rowRect);
-        if(rowContainerRect && rowRect) {
-            float containerHeight = rowContainerRect.sizeDelta.y;
-            float rowHeight = rowRect.sizeDelta.y;
-            float paddingTop = rowContainer.padding.top;
-            float paddingBottom = rowContainer.padding.bottom;
-            float spacing = rowContainer.spacing;
+        float totalHeight = 0;
+        if(prefabSeperator.TryGetComponent<RectTransform>(out RectTransform rectSeperator)) {
+            if(prefabRow.TryGetComponent<RectTransform>(out RectTransform rectRow)) {
+                totalHeight += rectSeperator.sizeDelta.y * (ruleSize + 1);
+                totalHeight += rectRow.sizeDelta.y * ruleSize;
+                totalHeight += 80f;
 
-            float containerSpace = containerHeight - paddingTop - paddingBottom - spacing * (ruleSize - 1) - rowHeight;
-            unselectedScale = containerSpace / ((ruleSize - 1) * rowHeight);
+                for(int i = 0; i < arrVerticalSeperator.Length; i++) {
+                    arrVerticalSeperator[i].TryGetComponent<RectTransform>(out RectTransform rectVertical);
+                    if(rectVertical) {
+                        rectVertical.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, totalHeight);
+                    }
+                }
+            }
         }
     }
 
@@ -108,7 +113,7 @@ public class HandMatchPopup : PopupObject
             if(scoreData.isComplete) {
                 arrData[i].expectScore = 0;
                 arrData[i].isComplete = true;
-                arrRow[i].SetData(scoreData.name, scoreData.arrHand, scoreData.score, true);
+                arrRow[i].SetData(scoreData.name, scoreData.score, true);
 
                 currentProgress++;
                 currentScore += scoreData.score;
@@ -117,7 +122,7 @@ public class HandMatchPopup : PopupObject
                 int expectScore = RuleBook.getInstance.GetScoreFromHand(i, gameController.arrDiceNumber);
                 arrData[i].expectScore = expectScore;
                 arrData[i].isComplete = false;
-                arrRow[i].SetData(scoreData.name, scoreData.arrHand, expectScore, false);
+                arrRow[i].SetData(scoreData.name, expectScore, false);
             }
         }
 
@@ -164,18 +169,12 @@ public class HandMatchPopup : PopupObject
     private void UpdateRow() {
         for(int i = 0; i < arrRow.Length; i++) {
             if(i == selectedIndex) {
-                arrRow[i].transform.localScale = new Vector3(1, selectedScale, 1);
                 arrRow[i].SetSelected(true);
                 selectedScore = arrData[i].expectScore;
             }
             else {
-                arrRow[i].transform.localScale = new Vector3(1, unselectedScale, 1);
                 arrRow[i].SetSelected(false);
             }
-        }
-
-        if(rowContainerRect != null) {
-            LayoutRebuilder.ForceRebuildLayoutImmediate(rowContainerRect);
         }
     }
 
@@ -184,10 +183,7 @@ public class HandMatchPopup : PopupObject
             progressText.text = currentProgress.ToString() + "/" + maxProgress.ToString();
         }
         if(scoreText) {
-            scoreText.text = currentScore.ToString();
-        }
-        if(scoreSelectedText) {
-            scoreSelectedText.text = "+" + selectedScore.ToString();
+            scoreText.text = "Score " + currentScore.ToString();
         }
     }
 
@@ -196,17 +192,12 @@ public class HandMatchPopup : PopupObject
             touchBlocker.BlockTouch();
         }
 
-        for(int i = 0; i < DEFS.DICE_MAX; i++) {
-            arrRow[selectedIndex].SetNumber(i, gameController.arrDiceNumber[i]);
-        }
-        arrRow[selectedIndex].coverObject.SetActive(false);
+        arrRow[selectedIndex].SetComplete();
         
         int prevProgress = currentProgress;
         int nextProgress = currentProgress + 1;
         int prevCurrentScore = currentScore;
         int nextCurrentScore = currentScore + selectedScore;
-        int prevSelectedScore = selectedScore;
-        int nextSelectedScore = 0;
 
         float elapsedTime = 0f;
         float currentTime = Time.time;
@@ -220,14 +211,9 @@ public class HandMatchPopup : PopupObject
 
             degree = elapsedTime / delay;
             
-            float opacity = Mathf.Lerp(0, 1, degree);
             currentProgress = (int)Mathf.Lerp(prevProgress, nextProgress, degree);
             currentScore = (int)Mathf.Lerp(prevCurrentScore, nextCurrentScore, degree);
-            selectedScore = (int)Mathf.Lerp(prevSelectedScore, nextSelectedScore, degree);
-
-            for(int i = 0; i < DEFS.DICE_MAX; i++) {
-                arrRow[selectedIndex].SetOpacity(i, opacity);
-            }
+            
             UpdateText();
 
             yield return null;

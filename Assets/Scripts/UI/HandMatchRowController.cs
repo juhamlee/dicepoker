@@ -5,24 +5,14 @@ using UnityEngine.UI;
 
 public class HandMatchRowController : MonoBehaviour
 {
-    public DiceIconController prefabDiceIcon = null;
-    public HorizontalLayoutGroup diceContainer = null;
     public Text nameText = null;
     public Text scoreText = null;
-    public GameObject coverObject = null;
+    public Image checkImage = null;
     public GameObject selecetObject = null;
     public Button button = null;
 
-    private DiceIconController[] arrDiceIcon = null;
-
     private void Awake() {
-        arrDiceIcon = new DiceIconController[DEFS.DICE_MAX];
-        if(prefabDiceIcon != null && diceContainer != null) {
-            for(int i = 0; i < DEFS.DICE_MAX; i++) {
-                arrDiceIcon[i] = Instantiate<DiceIconController>(prefabDiceIcon, diceContainer.transform);
-                arrDiceIcon[i].name = "Dice Icon" + (i + 1).ToString();
-            }
-        }
+
     }
 
     public void SetSelected(bool isSelected) {
@@ -34,32 +24,53 @@ public class HandMatchRowController : MonoBehaviour
         }
     }
 
-    public void SetData(string name, int[] arrNumber, int score, bool isComplete) {
-        for(int i = 0; i < DEFS.DICE_MAX; i++) {
-            SetNumber(i, arrNumber[i]);
-        }
+    public void SetData(string name, int score, bool isComplete) {
         if(nameText != null) {
             nameText.text = name;
         }
         if(scoreText != null) {
-            scoreText.text = "+" + score.ToString();
+            if(isComplete) {
+                scoreText.text = score.ToString();
+            }
+            else {
+                scoreText.text = "+" + score.ToString();
+            }
         }
-        if(coverObject != null) {
-            coverObject.SetActive(!isComplete);
+        if(checkImage != null) {
+            if(isComplete) {
+                checkImage.gameObject.SetActive(true);
+            }
+            else {
+                checkImage.gameObject.SetActive(false);
+            }
         }
     }
 
-    public void SetNumber(int index, int number) {
-        if(index < 0 || DEFS.DICE_MAX <= index) {
-            return;
-        }
-        arrDiceIcon[index].SetFace(number);
+    public void SetComplete() {
+        checkImage.gameObject.SetActive(true);
+        StartCoroutine("CompleteCoroutine", 0.2f);
     }
 
-    public void SetOpacity(int index, float opacity) {
-        if(index < 0 || DEFS.DICE_MAX <= index) {
-            return;
+    IEnumerator CompleteCoroutine(float targetTime) {
+        float elapsedTime = 0f;
+        float currentTime = Time.time;
+        float recentTime = currentTime;
+        float degree = 0f;
+
+        while(degree < 1f) {
+            currentTime = Time.time;
+            elapsedTime += currentTime - recentTime;
+            recentTime = currentTime;
+
+            degree = elapsedTime / targetTime;
+
+            float alpha = Mathf.Lerp(0, 1, degree);
+            float scale = Mathf.Lerp(2, 1, degree);
+
+            checkImage.color = new Color(1, 1, 1, alpha);
+            checkImage.transform.localScale = Vector3.one * scale;
+
+            yield return null;
         }
-        arrDiceIcon[index].SetOpacity(opacity);
     }
 }
